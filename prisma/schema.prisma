@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql" 
+
+}
+
+model User {
+  id                   String  @id @unique
+  email                String  @unique
+
+  files File[]
+  Message Message[]
+
+  stripeCustomerId     String? @unique @map("stripe_customer_id")
+  stripeSubscriptionId String? @unique @map("stripe_subscription_id")
+  stripePriceId        String? @map("stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
+}
+enum UploadStatus{
+  PENDING
+  PROCESSING
+  FAILED
+  SUCCESS
+}
+model File{
+  id String @id @unique @default(cuid())
+  name String
+  
+  uploadStatus UploadStatus @default(PENDING)
+
+  url String 
+  key String 
+  messages Message[]
+
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt
+
+  User User? @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+model Message {
+  id String @id @default(cuid())
+  text String @db.Text()
+
+  isUserMessage Boolean 
+
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt
+  User User? @relation(fields: [userId], references: [id])
+  userId String?
+
+  File File? @relation(fields: [fileId], references: [id])
+  fileId String?
+
+}
