@@ -1,4 +1,4 @@
-import { metadata } from "./../../layout";
+
 import db from "@/lib/index";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
