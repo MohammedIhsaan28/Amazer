@@ -81,8 +81,8 @@ export default function ChatWrapper({ fileId }: ChatWrapperProps) {
     );
 
   return (
-    <div className="relative max-h-full bg-zinc-50 flex divide-y divide-zinc-200 flex-col justify-between gap-2">
-      <div className="flex-1 justify-between flex flex-col mb-20">
+    <div className="relative max-h-full bg-zinc-50 flex flex-col ">
+      <div className="flex-1 flex flex-col pb-24">
         <Messages />
       </div>
 

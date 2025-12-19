@@ -1,6 +1,6 @@
 import ChatWrapper from "@/components/chat/ChatWrapper";
 import PdfRenderer from "@/components/PdfRenderer";
-import db from "@/lib";
+import db from "@/lib/index";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { notFound, redirect } from "next/navigation";
 
@@ -11,7 +11,7 @@ interface FileIdProps {
 }
 
 export default async function FileId({ params }: FileIdProps) {
-  const { fileid } = await params;
+  const { fileid } = await  params;
 
   const { getUser } = getKindeServerSession();
   const user = await getUser();

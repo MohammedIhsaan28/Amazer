@@ -1,12 +1,11 @@
-
 import db from "@/lib/index";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { pinecone } from "@/lib/pinecone";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import { PineconeStore } from "@langchain/pinecone";
+import { GoogleGenAI } from "@google/genai";
+
 
 const f = createUploadthing();
 
@@ -27,7 +26,6 @@ export const ourFileRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }: any) => {
-
       const createdFile = await db.file.create({
         data: {
           key: file.key,
@@ -45,27 +43,44 @@ export const ourFileRouter = {
         const pageLevelDocs = await loader.load();
         const pagesAmt = pageLevelDocs.length;
 
+        console.log("Pages:", pagesAmt);
+
         //vectorize and index entire document
-        console.log("creating pinecone");
+
         const pineconeIndex = pinecone.index("gemini");
-        console.log("embedding using gemini");
-        console.log(
-          "GOOGLE_API_KEY:",
-          process.env.GOOGLE_API_KEY ? "SET" : "NOT SET"
-        );
-        const embeddings = new GoogleGenerativeAIEmbeddings({
-          apiKey: process.env.GOOGLE_API_KEY,
-          modelName: "embedding-001",
+
+        const ai = new GoogleGenAI({
+          apiKey: process.env.GOOGLE_API_KEY!,
         });
-        console.log("Testing embeddings with sample text...");
-        const testEmbed = await embeddings.embedQuery("test");
-        console.log("Test embedding dimension:", testEmbed.length);
-        console.log("writing in pinecone");
-        await PineconeStore.fromDocuments(pageLevelDocs, embeddings, {
-          pineconeIndex,
-          namespace: createdFile.id,
+
+        const texts = pageLevelDocs.map((doc) => doc.pageContent);
+
+        const embedResponse = await ai.models.embedContent({
+          model: "gemini-embedding-001",
+          contents: texts,
+          taskType: "RETRIEVAL_DOCUMENT",
         });
-        console.log("writing in db");
+
+        // Normalize vectors (required for dimensions other than 3072)
+        function normalizeVector(vec: number[]): number[] {
+          const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
+          return vec.map((v) => v / norm);
+        }
+
+        const vectors = embedResponse.embeddings!.map((e, i) => ({
+          id: `${createdFile.id}-page-${i}`,
+          values: normalizeVector(e.values!.slice(0, 768)),
+          metadata: {
+            fileId: createdFile.id,
+            page: i + 1,
+            text: texts[i],
+          },
+        }));
+
+        await pineconeIndex.namespace(createdFile.id).upsert(vectors);
+
+        console.log("Stored in Pinecone successfully");
+
         await db.file.update({
           data: {
             uploadStatus: "SUCCESS",
@@ -85,7 +100,6 @@ export const ourFileRouter = {
           },
         });
       }
-
 
       return { success: true, userId: metadata.userId, file };
     }),
