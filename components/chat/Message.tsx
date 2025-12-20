@@ -64,16 +64,9 @@ export default function Message({
           ) : (
             message.text
           )}
-          {message.id === "loading-message" && (
-            <div
-              className={cn("text-xs select-none mt-2 w-full text-right", {
-                "text-zinc-500": !message.isUserMessage,
-                "text-cyan-400": message.isUserMessage,
-              })}
-            >
-              {format(new Date(message.createdAt), "HH:mm")}
-            </div>
-          )}
+          <div className="text-xs select-none mt-2 w-full text-right">
+            {format(new Date(message.createdAt), "HH:mm")}
+          </div>
         </div>
       </div>
     </div>

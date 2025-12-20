@@ -1,16 +1,19 @@
 import { trpc } from "@/app/_trpc/client";
 import { INFINITE_QUERY_LIMIT } from "@/config/infinite-query";
-import { Loader2,MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import Message from "./Message";
-import { useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
+import { ChatContext } from "./ChatContext";
 
 interface MessagesProps {
   fileId: string;
 }
 export default function Messages({ fileId }: MessagesProps) {
+    const {isLoading : isAIThinking} = useContext(ChatContext);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
   const { data, isLoading, fetchNextPage } =
     trpc.getFileMessages.useInfiniteQuery(
       {
@@ -22,7 +25,21 @@ export default function Messages({ fileId }: MessagesProps) {
         // keepPreviousData: true,
       }
     );
-  
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      if (el.scrollTop === 0) {
+        fetchNextPage();
+      }
+    };
+
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [fetchNextPage]);
+
   const messages = data?.pages.flatMap((page) => page.messages);
   const loadingMessage = {
     createdAt: new Date().toISOString(),
@@ -36,34 +53,51 @@ export default function Messages({ fileId }: MessagesProps) {
   };
 
   const combinedMessages = [
-    ...(isLoading ? [loadingMessage] : []),
+    ...(isAIThinking ? [loadingMessage] : []),
     ...(messages ?? []),
   ];
   return (
-    <div className="flex max-h-[calc(100vh-3.5rem-7rem)] border-zinc-200 flex-1 flex-col gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrollbar-touch">
+    <div
+      ref={containerRef}
+      className="flex max-h-[calc(100vh-3.5rem-7rem)] border-zinc-200 flex-1 flex-col gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrollbar-touch"
+    >
       {combinedMessages && combinedMessages.length > 0 ? (
-        combinedMessages.map((message, i) => { 
-            const isNextMessageSamePerson = combinedMessages[i+1]?.isUserMessage === combinedMessages[i]?.isUserMessage;
+        combinedMessages.map((message, i) => {
+          const isNextMessageSamePerson =
+            combinedMessages[i + 1]?.isUserMessage ===
+            combinedMessages[i]?.isUserMessage;
           if (i === combinedMessages.length - 1) {
-            return <Message key={message.id} message={message} isNextMessageSamePerson={isNextMessageSamePerson} />;
+            return (
+              <Message
+                key={message.id}
+                message={message}
+                isNextMessageSamePerson={isNextMessageSamePerson}
+              />
+            );
           } else {
-            return <Message key={message.id} message={message} isNextMessageSamePerson={isNextMessageSamePerson} />;
+            return (
+              <Message
+                key={message.id}
+                message={message}
+                isNextMessageSamePerson={isNextMessageSamePerson}
+              />
+            );
           }
         })
       ) : isLoading ? (
         <div className="w-full flex flex-col gap-2">
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16"/>
-            <Skeleton className="h-16"/>
-            <Skeleton className="h-16"/>
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
-            <MessageSquare className="h-8 w-8 text-blue-500"/>
-            <h3 className="font-semibold text-xl">You&apos;re all set!</h3>
-            <p className="text-zinc-500 text-sm">
-                Ask your first question to get started
-            </p>
+          <MessageSquare className="h-8 w-8 text-blue-500" />
+          <h3 className="font-semibold text-xl">You&apos;re all set!</h3>
+          <p className="text-zinc-500 text-sm">
+            Ask your first question to get started
+          </p>
         </div>
       )}
     </div>

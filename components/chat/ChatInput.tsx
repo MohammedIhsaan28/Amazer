@@ -38,6 +38,7 @@ export default function ChatInput({ isDisabled }: ChatInputProps) {
               onClick={() => {
                 addMessage();
                 textareaRef.current?.focus();
+                
               }}
               className="absolute bottom-1.5 right-2 bg-cyan-300 hover:bg-cyan-400"
               aria-label="send message"

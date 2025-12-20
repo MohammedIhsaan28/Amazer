@@ -41,9 +41,9 @@ function UploadDropzone() {
           clearInterval(interval);
           return prevProgress;
         }
-        return prevProgress + 5;
+        return prevProgress + 2;
       });
-    }, 500);
+    }, 1000);
 
     return interval;
   };

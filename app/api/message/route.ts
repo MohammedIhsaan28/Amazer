@@ -4,8 +4,6 @@ import { GoogleGenAI } from "@google/genai";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextRequest } from "next/server";
 import { pinecone } from "@/lib/pinecone";
-// import { streamText } from "ai";
-// import { google } from "@ai-sdk/google";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -14,49 +12,51 @@ export const POST = async (req: NextRequest) => {
     const { getUser } = getKindeServerSession();
     const user = await getUser();
 
-    if (!user || !user.id) return new Response("Unauthorized", { status: 401 });
-    const { id: userId } = user;
+    if (!user?.id) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     const { fileId, message } = sendMessageValidator.parse(body);
 
     const file = await db.file.findFirst({
-      where: {
-        id: fileId,
-        userId,
-      },
+      where: { id: fileId, userId: user.id },
     });
 
-    if (!file) return new Response("Not found", { status: 404 });
+    if (!file) {
+      return new Response("Not found", { status: 404 });
+    }
 
+    // Save user message
     await db.message.create({
       data: {
         text: message,
         isUserMessage: true,
-        userId,
+        userId: user.id,
         fileId,
       },
     });
 
-    // vectorize the message
     const ai = new GoogleGenAI({
       apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
     });
 
+    // Embed query
     const embedQuery = await ai.models.embedContent({
       model: "gemini-embedding-001",
       contents: message,
       taskType: "RETRIEVAL_QUERY",
     });
-    function normalizeVector(vec: number[]) {
+
+    const normalizeVector = (vec: number[]) => {
       const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
       return vec.map((v) => v / norm);
-    }
+    };
 
     const queryVector = normalizeVector(
       embedQuery.embeddings![0].values!.slice(0, 768)
     );
 
-    // Query Pinecone
+    // Pinecone search
     const pineconeIndex = pinecone.index("gemini");
     const results = await pineconeIndex.namespace(fileId).query({
       vector: queryVector,
@@ -64,54 +64,38 @@ export const POST = async (req: NextRequest) => {
       includeMetadata: true,
     });
 
-    const context = results.matches?.map((m) => m.metadata?.text).join("\n\n");
+    const context =
+      results.matches?.map((m) => m.metadata?.text).join("\n\n") ?? "";
 
+    // Previous messages (short history)
     const prevMessages = await db.message.findMany({
-      where: {
-        fileId,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
+      where: { fileId },
+      orderBy: { createdAt: "asc" },
       take: 6,
     });
 
-    const formattedMessages = prevMessages.map((msg) => ({
-      role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
-      content: msg.text,
-    }));
-    const formattedPrevMessages = formattedMessages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    const systemInstruction =
-      "Use the provided context and previous conversation to answer the user's question in markdown format. If the answer is not present, say that you don't know.";
-
     const contents = [
-      {
-        role: "user",
-        parts: [{ text: `CONTEXT:\n${context}` }],
-      },
-      ...prevMessages.reverse().map((m) => ({
+      ...prevMessages.map((m) => ({
         role: m.isUserMessage ? "user" : "model",
         parts: [{ text: m.text }],
       })),
       {
         role: "user",
-        parts: [{ text: `USER QUESTION:\n${message}` }],
+        parts: [
+          {
+            text: `CONTEXT:\n${context}\n\nUSER QUESTION:\n${message}`,
+          },
+        ],
       },
     ];
 
-    // AI response(problem)
     const completion = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents,
       config: {
-        systemInstruction,
-        thinkingConfig: {
-          thinkingBudget: 0, // faster + cheaper
-        },
+        systemInstruction:
+          "Answer using the given context in markdown. If the answer is not present, say you don't know.",
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
 
@@ -121,13 +105,14 @@ export const POST = async (req: NextRequest) => {
       data: {
         text: aiResponse,
         isUserMessage: false,
-        userId,
+        userId: user.id,
         fileId,
       },
     });
-    console.log("AI Response:", aiResponse);
+
     return Response.json({ answer: aiResponse });
-  } catch (error) {
-    return new Response(`Internal Server Error: ${error}`, { status: 500 });
+  } catch (err) {
+    console.error(err);
+    return new Response("Internal Server Error", { status: 500 });
   }
 };

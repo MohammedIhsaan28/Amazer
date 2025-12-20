@@ -118,7 +118,7 @@ export const appRouter = router({
           fileId,
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: "asc",
         },
         cursor: cursor ? { id: cursor } : undefined,
         select: {
@@ -137,7 +137,7 @@ export const appRouter = router({
       }
 
       return {
-        messages: messages.reverse(),
+        messages: messages,
         nextCursor,
       };
     }),
