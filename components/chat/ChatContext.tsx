@@ -11,6 +11,7 @@ type StreamResponse = {
 
 }
 
+
 export const ChatContext = createContext<StreamResponse>({
     addMessage:()=> {},
     message:'',
@@ -22,11 +23,11 @@ interface Props{
     fileId: string;
     children: React.ReactNode;
 }
-export const ChatContestProvider = ({fileId, children}:Props)=>{
+export const ChatContextProvider = ({fileId, children}:Props)=>{
     const [message, setMessage] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const {mutate: sendMessage} = useMutation({
+    const {mutate: sendMessage,isPending} = useMutation({
         mutationFn : async({message}:{message:string})=>{
             const response = await fetch('/api/message',{
                 method: 'POST',
@@ -40,19 +41,28 @@ export const ChatContestProvider = ({fileId, children}:Props)=>{
                  throw new  Error('Failed to send message');
                 }
             return response.body;
+        },
+        onSuccess:()=>{
+            setMessage('');
+            toast.info('Please wait for a while...');
+        },
+        onError:()=>{
+            toast.error('Failed to send Message');
         }
     })
     const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setMessage(event.target.value);
     };
-    const addMessage = ()=> sendMessage({message});
+    const addMessage = ()=> {
+        sendMessage({message})
+    };
 
     return (
         <ChatContext.Provider value={{
             addMessage,
             message,
             handleInputChange,
-            isLoading
+            isLoading:isPending
         }}>
             {children}
         </ChatContext.Provider>

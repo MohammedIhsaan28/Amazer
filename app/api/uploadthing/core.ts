@@ -50,7 +50,7 @@ export const ourFileRouter = {
         const pineconeIndex = pinecone.index("gemini");
 
         const ai = new GoogleGenAI({
-          apiKey: process.env.GOOGLE_API_KEY!,
+          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
         });
 
         const texts = pageLevelDocs.map((doc) => doc.pageContent);

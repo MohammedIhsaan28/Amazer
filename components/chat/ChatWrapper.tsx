@@ -6,6 +6,7 @@ import { trpc } from "@/app/_trpc/client";
 import { ChevronLeft, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "../ui/button";
+import { ChatContextProvider } from "./ChatContext";
 
 interface ChatWrapperProps {
   fileId: string;
@@ -81,12 +82,15 @@ export default function ChatWrapper({ fileId }: ChatWrapperProps) {
     );
 
   return (
-    <div className="relative max-h-full bg-zinc-50 flex flex-col ">
+
+    <ChatContextProvider fileId={fileId} >
+    <div className="relative min-h-full bg-zinc-50 flex flex-col ">
       <div className="flex-1 flex flex-col pb-24">
-        <Messages />
+        <Messages fileId={fileId} />
       </div>
 
-      <ChatInput isDisabled />
+      <ChatInput isDisabled={false} />
     </div>
+    </ChatContextProvider>
   );
 }
