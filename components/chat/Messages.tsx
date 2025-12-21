@@ -5,6 +5,7 @@ import Skeleton from "react-loading-skeleton";
 import Message from "./Message";
 import { useContext, useEffect, useRef } from "react";
 import { ChatContext } from "./ChatContext";
+// import {useIntersection} from '@mantine/hooks';
 
 interface MessagesProps {
   fileId: string;
@@ -12,7 +13,6 @@ interface MessagesProps {
 export default function Messages({ fileId }: MessagesProps) {
     const {isLoading : isAIThinking} = useContext(ChatContext);
 
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, fetchNextPage } =
     trpc.getFileMessages.useInfiniteQuery(
@@ -25,20 +25,6 @@ export default function Messages({ fileId }: MessagesProps) {
         // keepPreviousData: true,
       }
     );
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onScroll = () => {
-      if (el.scrollTop === 0) {
-        fetchNextPage();
-      }
-    };
-
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [fetchNextPage]);
 
   const messages = data?.pages.flatMap((page) => page.messages);
   const loadingMessage = {
@@ -56,10 +42,22 @@ export default function Messages({ fileId }: MessagesProps) {
     ...(isAIThinking ? [loadingMessage] : []),
     ...(messages ?? []),
   ];
+
+  // const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  // const {ref,entry } = useIntersection({
+  //   root: lastMessageRef.current,
+  //   threshold:1,
+  // })
+
+  // useEffect(()=>{
+  //   if(entry?.isIntersecting){
+  //     fetchNextPage();
+  //   }
+  // },[entry,fetchNextPage])
   return (
     <div
-      ref={containerRef}
-      className="flex max-h-[calc(100vh-3.5rem-7rem)] border-zinc-200 flex-1 flex-col gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrollbar-touch"
+      
+      className="flex max-h-[calc(100vh-3.5rem-7rem)] border-zinc-200 flex-1 flex-col-reverse gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrollbar-touch"
     >
       {combinedMessages && combinedMessages.length > 0 ? (
         combinedMessages.map((message, i) => {
@@ -72,6 +70,7 @@ export default function Messages({ fileId }: MessagesProps) {
                 key={message.id}
                 message={message}
                 isNextMessageSamePerson={isNextMessageSamePerson}
+                
               />
             );
           } else {

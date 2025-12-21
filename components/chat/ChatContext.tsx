@@ -80,15 +80,17 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
           const newPages = [...old.pages];
           newPages[0] = {
             ...newPages[0],
-
+            
             messages: [
-              ...newPages[0].messages,
+                
               {
                 id: crypto.randomUUID(),
                 text: message,
                 isUserMessage: true,
                 createdAt: new Date().toISOString(),
               },
+              ...newPages[0].messages,
+              
             ],
           };
 
@@ -97,58 +99,11 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
       );
       return { previousData };
     },
-    onSuccess: async (stream) => {
-  if (!stream) {
-    toast.error("No response stream received");
-    return;
-  }
-
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let accResponse = "";
-  const aiMessageId = crypto.randomUUID();
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-
-    accResponse += decoder.decode(value);
-
-    utils.getFileMessages.setInfiniteData(
-      { fileId, limit: INFINITE_QUERY_LIMIT },
-      (old) => {
-        if (!old) return old;
-
-        const newPages = [...old.pages];
-        const firstPage = newPages[0];
-
-        const aiExists = firstPage.messages.some(
-          (m) => m.id === aiMessageId
-        );
-
-        firstPage.messages = aiExists
-          ? firstPage.messages.map((m) =>
-              m.id === aiMessageId ? { ...m, text: accResponse } : m
-            )
-          : [
-              ...firstPage.messages,
-              {
-                id: aiMessageId,
-                text: accResponse,
-                isUserMessage: false,
-                createdAt: new Date().toISOString(),
-              },
-            ];
-
-        newPages[0] = { ...firstPage };
-        return { ...old, pages: newPages };
-      }
-    );
-  }
-
-  setIsLoading(false);
-},
-
+    onSuccess: async () => {
+      setMessage("");
+      setIsLoading(false);
+      toast.info("Scroll down!");
+    },
     onError: (_, __, context) => {
       setMessage(backupMessage.current);
       if (context?.previousData) {
