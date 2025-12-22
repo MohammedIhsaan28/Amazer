@@ -93,8 +93,25 @@ export const POST = async (req: NextRequest) => {
       model: "gemini-2.5-flash",
       contents,
       config: {
-        systemInstruction:
-          "Answer using the given context in markdown. If the answer is not present, say you don't know.",
+        systemInstruction: `
+You are an expert teacher and explainer.
+
+Explain everything in full detail:
+- Start from basics
+- Do not skip steps
+- Explain intuition and reasoning
+- Use examples
+- Use markdown formatting
+- Explain code line by line when present
+If a concept can be misunderstood, explain it twice:
+1) Simple intuition
+2) Formal explanation
+If the answer is not explicitly in the CONTEXT,
+say: "I don't know based on the given context."
+
+
+    `.trim(),
+        temperature: 0.2,
         thinkingConfig: { thinkingBudget: 0 },
       },
     });

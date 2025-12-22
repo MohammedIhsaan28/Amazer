@@ -29,7 +29,7 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
   const backupMessage = useRef("");
   const utils = trpc.useContext();
 
-  const { mutate: sendMessage, isPending } = useMutation({
+  const { mutate: sendMessage } = useMutation({
     mutationFn: async ({ message }: { message: string }) => {
       const response = await fetch("/api/message", {
         method: "POST",
@@ -80,9 +80,8 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
           const newPages = [...old.pages];
           newPages[0] = {
             ...newPages[0],
-            
+
             messages: [
-                
               {
                 id: crypto.randomUUID(),
                 text: message,
@@ -90,7 +89,6 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
                 createdAt: new Date().toISOString(),
               },
               ...newPages[0].messages,
-              
             ],
           };
 
@@ -99,10 +97,77 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
       );
       return { previousData };
     },
-    onSuccess: async () => {
+    onSuccess: async (stream) => {
       setMessage("");
       setIsLoading(false);
-      toast.info("Scroll down!");
+      if (!stream) {
+        return toast.error("Please refresh this page and try again");
+      }
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      // Accumulated response
+      let accResponse = "";
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = value ? decoder.decode(value,{stream: true}): '';
+
+        accResponse+= chunkValue;
+
+        // append chunk to the actual message in the cache
+        utils.getFileMessages.setInfiniteData(
+          { fileId, limit: INFINITE_QUERY_LIMIT },
+          (old) => {
+            if (!old) return { pages: [], pageParams: [] };
+
+            let isAIResponseCreated = old.pages.some((page) =>
+              page.messages.some((message) => message.id === "ai-response")
+            );
+            let updatedPages = old.pages.map((page) => {
+              if (page === old.pages[0]) {
+                let updatedMessages;
+
+                if (!isAIResponseCreated) {
+                  updatedMessages = [
+                    {
+                      createdAt: new Date().toISOString(),
+                      id: "ai-response",
+                      text: accResponse,
+                      isUserMessage: false,
+                    },
+                    ...page.messages,
+                  ];
+                } else {
+                  updatedMessages = page.messages.map((message) => {
+                    if (message.id === "ai-response") {
+                      return {
+                        ...message,
+                        text: accResponse,
+                      };
+                    }
+                    return message;
+                  });
+                }
+                return {
+                  ...page,
+                  messages: updatedMessages,
+                };
+              }
+
+              return page;
+            });
+
+            return {
+              ...old,
+              pages: updatedPages,
+            };
+          }
+        );
+      }
+
     },
     onError: (_, __, context) => {
       setMessage(backupMessage.current);
@@ -128,7 +193,7 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
     setMessage(event.target.value);
   };
   const addMessage = () => {
-    if (!message.trim()) return;
+    if (!message.trim()) return toast.error("Are you blind!, you can't send empty messages.");
     sendMessage({ message });
   };
 
@@ -145,3 +210,4 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
     </ChatContext.Provider>
   );
 };
+
