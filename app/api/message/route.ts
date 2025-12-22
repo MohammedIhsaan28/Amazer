@@ -44,7 +44,6 @@ export const POST = async (req: NextRequest) => {
     const embedQuery = await ai.models.embedContent({
       model: "gemini-embedding-001",
       contents: message,
-      taskType: "RETRIEVAL_QUERY",
     });
 
     const normalizeVector = (vec: number[]) => {

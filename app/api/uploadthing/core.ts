@@ -59,7 +59,7 @@ export const ourFileRouter = {
         const embedResponse = await ai.models.embedContent({
           model: "gemini-embedding-001",
           contents: texts,
-          taskType: "RETRIEVAL_DOCUMENT",
+          // taskType: "RETRIEVAL_DOCUMENT",
         });
 
         // Normalize vectors (required for dimensions other than 3072)
