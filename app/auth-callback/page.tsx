@@ -35,7 +35,7 @@ const Page1 = () => {
   // Handle errors with useEffect
   useEffect(() => {
     if (error?.data?.code === "UNAUTHORIZED") {
-      router.push("/");
+      router.push("/sign-in");
     }
   }, [error?.data?.code, router]);
 
