@@ -5,6 +5,7 @@ import { getKindeServerSession, LoginLink, RegisterLink } from "@kinde-oss/kinde
 import { ArrowRight } from "lucide-react";
 import UserAccountNav from "./UserAccountNav";
 import { Icon } from "./icons";
+import MobileNav from "./MobileNav";
 
 export default async function Navbar() {
   const {getUser} = getKindeServerSession()
@@ -17,7 +18,7 @@ export default async function Navbar() {
             <Icon.logo className="w-6 h-6 "/>
             <span>Amaze</span>
           </Link>
-          {/* <MobileNav isAuth={!!user} /> */}
+          <MobileNav isAuth={!!user} />
 
           <div className="hidden items-center gap-4 sm:flex">
             {!user ? (
