@@ -54,11 +54,15 @@ const MobileNav = ({ isAuth }: { isAuth: boolean }) => {
 
                 <li>
                   <Link
-                    onClick={() => closeOnCurrent("/sign-in")}
+                    onClick={() =>{
+                      setIsLoading(true);
+                       closeOnCurrent("/sign-in")
+                       
+                      }}
                     className="flex items-center w-full font-semibold "
                     href="/sign-in"
                   >
-                    Sign In
+                    {isLoading ? 'Loading...' : 'Sign In'}
                   </Link>
                 </li>
 
@@ -80,10 +84,13 @@ const MobileNav = ({ isAuth }: { isAuth: boolean }) => {
 
                 <li>
                   <Link
+                  onClick={()=>{
+                    setIsLoading(true);
+                  }}
                     className="flex items-center w-full font-semibold "
                     href="/sign-out"
                   >
-                    Sign Out
+                    {isLoading ? 'Loading...' : 'Sign Out'}
                   </Link>
                 </li>
 
