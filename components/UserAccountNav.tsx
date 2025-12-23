@@ -26,7 +26,7 @@ export default function UserAccountNav({
         <Button className="rounded-full h-8 w-8 aspect-square bg-cyan-300">
           <Avatar className="relative w-8 h-8 ">
             {imageUrl ? (
-              <div className="relative aspect-square h-full w-full">
+              <div className="relative flex items-center justify-center aspect-square h-full w-full">
                 <Icon.user className="h-4 w-4 text-black" />
               </div>
             ) : (

@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 
 const MobileNav = ({ isAuth }: { isAuth: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading,setIsLoading] = useState(false);
+
   
   const toggleOpen = () => {
     setIsOpen((prev) => !prev)
